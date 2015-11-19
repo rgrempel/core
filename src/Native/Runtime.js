@@ -550,6 +550,8 @@ if (!Elm.fullscreen) {
 	function F8(fun) {return F$(fun, 8);}
 	function F9(fun) {return F$(fun, 9);}
 
+    // We only cover a - h because if we're applying 9 parameters, we've
+    // definitely just called the function. Since we only support 9.
     function A$(wrapper, provided, a, b, c, d, e, f, g, h)
     {
         var remaining = wrapper.arity - provided;
@@ -561,35 +563,51 @@ if (!Elm.fullscreen) {
 
         switch (provided) {
             case 1:
-                curried = wrapper.func.bind(this, a);
+                curried = function (aa, bb, cc, dd, ee, ff, gg, hh) {
+                    return wrapper.func(a, aa, bb, cc, dd, ee, ff, gg, hh);
+                }
                 break;
 
             case 2:
-                curried = wrapper.func.bind(this, a, b);
+                curried = function (aa, bb, cc, dd, ee, ff, gg) {
+                    return wrapper.func(a, b, aa, bb, cc, dd, ee, ff, gg);
+                }
                 break;
 
             case 3:
-                curried = wrapper.func.bind(this, a, b, c);
+                curried = function (aa, bb, cc, dd, ee, ff) {
+                    return wrapper.func(a, b, c, aa, bb, cc, dd, ee, ff);
+                }
                 break;
 
             case 4:
-                curried = wrapper.func.bind(this, a, b, c, d);
+                curried = function (aa, bb, cc, dd, ee) {
+                    return wrapper.func(a, b, c, d, aa, bb, cc, dd, ee);
+                }
                 break;
 
             case 5:
-                curried = wrapper.func.bind(this, a, b, c, d, e);
+                curried = function (aa, bb, cc, dd) {
+                    return wrapper.func(a, b, c, d, e, aa, bb, cc, dd);
+                }
                 break;
 
             case 6:
-                curried = wrapper.func.bind(this, a, b, c, d, e, f);
+                curried = function (aa, bb, cc) {
+                    return wrapper.func(a, b, c, d, e, f, aa, bb, cc);
+                }
                 break;
 
             case 7:
-                curried = wrapper.func.bind(this, a, b, c, d, e, f, g);
+                curried = function (aa, bb) {
+                    return wrapper.func(a, b, c, d, e, f, g, aa, bb);
+                }
                 break;
 
             case 8:
-                curried = wrapper.func.bind(this, a, b, c, d, e, f, g, h);
+                curried = function (aa) {
+                    return wrapper.func(a, b, c, d, e, f, g, h, aa);
+                }
                 break;
 
             // No case for 9, since that will necessarily have been directly

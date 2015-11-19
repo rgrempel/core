@@ -501,136 +501,143 @@ if (!Elm.fullscreen) {
 		}
 	}());
 
-	function F2(fun)
-	{
-		function wrapper(a) { return function(b) { return fun(a,b); }; }
-		wrapper.arity = 2;
-		wrapper.func = fun;
-		return wrapper;
-	}
+    // F2 through F9 are expected to take an ordinary function as a parameter,
+    // with the suffix indicating the expected number of parameters. By
+    // "ordinary" function, I mean one that declares its parameters in the
+    // ordinary way.
+    //
+    // They are meant to return a special function, which is special in the
+    // following ways:
+    //
+    // -- Other than via A2 through A9, the special function will only ever be
+    //    called with 1 parameter. When that happens, it should curry itself, and
+    //    return a new special function that takes one less parameter.
+    //
+    //    To put it another way, outside code is supposed to be able to call
+    //    the special function directly, with one parameter, as a kind of
+    //    short-cut for A1 (which doesn't exist). Other than that, the special
+    //    function will only ever be called via A2 through A9.
+    //
+    // -- If supplied to A2 through A9, A2 through A9 need to be able to do the
+    //    right thing -- which is, apply the specified number of parameters, and
+    //    either return the result, or a new special function.
+    //
+    // Note that some of what follows could be simplified by using the
+    // `arguments` variable. However, we can gain some efficiency by limiting
+    // our scope to 9 arguments and doing a bit of repetition.
+    function F$(fun, expected)
+    {
+        var curry = function curry (one)
+        {
+            // To curry one parameter, we convert this to a call to our function
+            // that does application generally.
+            return A$(curry, [one]);
+        }
 
-	function F3(fun)
-	{
-		function wrapper(a) {
-			return function(b) { return function(c) { return fun(a, b, c); }; };
-		}
-		wrapper.arity = 3;
-		wrapper.func = fun;
-		return wrapper;
-	}
+        // On the special function, we cache the original function, its arity,
+        // and whatever arguments we've curried so far ... none, at this stage.
+        curry.func = fun;
+        curry.arity = expected;
+        curry.curried = [];
 
-	function F4(fun)
-	{
-		function wrapper(a) { return function(b) { return function(c) {
-			return function(d) { return fun(a, b, c, d); }; }; };
-		}
-		wrapper.arity = 4;
-		wrapper.func = fun;
-		return wrapper;
-	}
+        return curry;
+    }
 
-	function F5(fun)
-	{
-		function wrapper(a) { return function(b) { return function(c) {
-			return function(d) { return function(e) { return fun(a, b, c, d, e); }; }; }; };
-		}
-		wrapper.arity = 5;
-		wrapper.func = fun;
-		return wrapper;
-	}
+	function F2(fun) {return F$(fun, 2);}
+	function F3(fun) {return F$(fun, 3);}
+	function F4(fun) {return F$(fun, 4);}
+	function F5(fun) {return F$(fun, 5);}
+	function F6(fun) {return F$(fun, 6);}
+	function F7(fun) {return F$(fun, 7);}
+	function F8(fun) {return F$(fun, 8);}
+	function F9(fun) {return F$(fun, 9);}
 
-	function F6(fun)
-	{
-		function wrapper(a) { return function(b) { return function(c) {
-			return function(d) { return function(e) { return function(f) {
-			return fun(a, b, c, d, e, f); }; }; }; }; };
-		}
-		wrapper.arity = 6;
-		wrapper.func = fun;
-		return wrapper;
-	}
+    function A$(curry, many)
+    {
+        // We've cached any arguments already curried ... so concat the
+        // new arguments to get all curried arguments.
+        var curried = curry.curried.concat(many);
 
-	function F7(fun)
-	{
-		function wrapper(a) { return function(b) { return function(c) {
-			return function(d) { return function(e) { return function(f) {
-			return function(g) { return fun(a, b, c, d, e, f, g); }; }; }; }; }; };
-		}
-		wrapper.arity = 7;
-		wrapper.func = fun;
-		return wrapper;
-	}
+        if (curried.length >= curry.arity)
+        {
+            // If we've got enough arguments, then we can just call the
+            // original function. We'll pass along whatever `this` is
+            // right now, though it's probably useless.
+            return curry.func.apply(this, curried);
+        }
+        else
+        {
+            // Otherwise, we're supposed to produce a new special function
+            // that partially applies the parameters we've been given.
+            var moreCurry = function moreCurry (one)
+            {
+                // The special function is basically the same as above.
+                return A$(moreCurry, [one]);
+            }
 
-	function F8(fun)
-	{
-		function wrapper(a) { return function(b) { return function(c) {
-			return function(d) { return function(e) { return function(f) {
-			return function(g) { return function(h) {
-			return fun(a, b, c, d, e, f, g, h); }; }; }; }; }; }; };
-		}
-		wrapper.arity = 8;
-		wrapper.func = fun;
-		return wrapper;
-	}
+            // And, like above, we cache -- but with the extra arguments.
+            moreCurry.func = curry.func;
+            moreCurry.arity = curry.arity;
+            moreCurry.curried = curried;
 
-	function F9(fun)
-	{
-		function wrapper(a) { return function(b) { return function(c) {
-			return function(d) { return function(e) { return function(f) {
-			return function(g) { return function(h) { return function(i) {
-			return fun(a, b, c, d, e, f, g, h, i); }; }; }; }; }; }; }; };
-		}
-		wrapper.arity = 9;
-		wrapper.func = fun;
-		return wrapper;
-	}
+            return moreCurry;
+        }
+    }
 
-	function A2(fun, a, b)
+	function A2(curry, a, b)
 	{
-		return fun.arity === 2
-			? fun.func(a, b)
-			: fun(a)(b);
-	}
-	function A3(fun, a, b, c)
+        return curry.arity === 2
+            ? curry.func(a, b)
+            : A$(curry, [a, b]);
+    }
+
+    function A3(curry, a, b, c)
 	{
-		return fun.arity === 3
-			? fun.func(a, b, c)
-			: fun(a)(b)(c);
-	}
-	function A4(fun, a, b, c, d)
+        return curry.arity === 3
+            ? curry.func(a, b, c)
+            : A$(curry, [a, b, c]);
+    }
+
+    function A4(curry, a, b, c, d)
 	{
-		return fun.arity === 4
-			? fun.func(a, b, c, d)
-			: fun(a)(b)(c)(d);
-	}
-	function A5(fun, a, b, c, d, e)
+        return curry.arity === 4
+            ? curry.func(a, b, c, d)
+            : A$(curry, [a, b, c, d]);
+    }
+
+    function A5(curry, a, b, c, d, e)
 	{
-		return fun.arity === 5
-			? fun.func(a, b, c, d, e)
-			: fun(a)(b)(c)(d)(e);
-	}
-	function A6(fun, a, b, c, d, e, f)
+        return curry.arity === 5
+            ? curry.func(a, b, c, d, e)
+            : A$(curry, [a, b, c, d, e]);
+    }
+
+    function A6(curry, a, b, c, d, e, f)
 	{
-		return fun.arity === 6
-			? fun.func(a, b, c, d, e, f)
-			: fun(a)(b)(c)(d)(e)(f);
-	}
-	function A7(fun, a, b, c, d, e, f, g)
+        return curry.arity === 6
+            ? curry.func(a, b, c, d, e, f)
+            : A$(curry, [a, b, c, d, e, f]);
+    }
+
+    function A7(curry, a, b, c, d, e, f, g)
 	{
-		return fun.arity === 7
-			? fun.func(a, b, c, d, e, f, g)
-			: fun(a)(b)(c)(d)(e)(f)(g);
-	}
-	function A8(fun, a, b, c, d, e, f, g, h)
+        return curry.arity === 7
+            ? curry.func(a, b, c, d, e, f, g)
+            : A$(curry, [a, b, c, d, e, f, g]);
+    }
+
+    function A8(curry, a, b, c, d, e, f, g, h)
 	{
-		return fun.arity === 8
-			? fun.func(a, b, c, d, e, f, g, h)
-			: fun(a)(b)(c)(d)(e)(f)(g)(h);
-	}
-	function A9(fun, a, b, c, d, e, f, g, h, i)
+        return curry.arity === 8
+            ? curry.func(a, b, c, d, e, f, g, h)
+            : A$(curry, [a, b, c, d, e, f, g, h]);
+    }
+
+    function A9(curry, a, b, c, d, e, f, g, h, i)
 	{
-		return fun.arity === 9
-			? fun.func(a, b, c, d, e, f, g, h, i)
-			: fun(a)(b)(c)(d)(e)(f)(g)(h)(i);
-	}
+        return curry.arity === 9
+            ? curry.func(a, b, c, d, e, f, g, h, i)
+            : A$(curry, [a, b, c, d, e, f, g, h, i]);
+    }
+
 }

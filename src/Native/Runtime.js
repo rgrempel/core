@@ -527,10 +527,27 @@ if (!Elm.fullscreen) {
     // our scope to 9 arguments and doing a bit of repetition.
     function F$(func, arity)
     {
-        var wrapper = function wrapper (one)
+        var wrapper;
+
+        if (arity === 2)
         {
-            // Our arity can't be one, because we wouldn't get called then.
-            return A$(wrapper, 1, one);
+            // We can optimize the arity 2 case, because it's only really got
+            // two possibilities ... either you call the wrapper directly,
+            // or you call A2. If you call A2, that will get caught below.
+            // If you call this directly, we can short-circuit the process.
+            wrapper = function wrapper (one)
+            {
+                return function wrapper2 (two) {
+                    return func(one, two);
+                }
+            }
+        }
+        else
+        {
+            wrapper = function wrapper (one)
+            {
+                return A$(wrapper, 1, one);
+            }
         }
 
         // On the special function, we cache the original function, its arity,
@@ -624,16 +641,7 @@ if (!Elm.fullscreen) {
         }
         else
         {
-            // If we still need more than 1, we'll have to construct another
-            // wrapper.
-            var wrapper2 = function wrapper2 (one)
-            {
-                return A$(wrapper2, 1, one);
-            }
-
-            wrapper2.func = curried;
-            wrapper2.arity = remaining;
-            return wrapper2;
+            return F$(curried, remaining);
         }
     }
 
